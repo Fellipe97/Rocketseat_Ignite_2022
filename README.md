@@ -5,5 +5,5 @@
 </h2>
 <p>
     Separei por pasta as trilhas por conteúdo específico, contendo aulas e desafios.Qualquer dúvida
-    ou ideias de projetos entra em contato e bora codaaar. 
+    ou ideias de projetos entra em contato e bora codaaar.
 </p>
