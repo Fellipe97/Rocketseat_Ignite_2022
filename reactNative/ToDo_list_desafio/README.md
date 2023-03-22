@@ -32,8 +32,8 @@
 
 <h1><b>Resultado:</b></h1>
 <div class="box">
-    <img src="https://github.com/Fellipe97/ToDo_list_desafio/blob/main/tela1.jpeg" alt="Tela1" width="300" height="500">
-    <img src="https://github.com/Fellipe97/ToDo_list_desafio/blob/main/tela2.jpeg" alt="Tela1" width="300" height="500">
+    <img src="https://github.com/Fellipe97/Rocketseat_Ignite_2022/blob/main/reactNative/ToDo_list_desafio/tela1.jpeg" alt="Tela1" width="300" height="500">
+    <img src="https://github.com/Fellipe97/Rocketseat_Ignite_2022/blob/main/reactNative/ToDo_list_desafio/tela2.jpeg" alt="Tela1" width="300" height="500">
 </div>
 
 
