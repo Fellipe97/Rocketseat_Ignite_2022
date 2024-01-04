@@ -1,0 +1,9 @@
+link para download do projeto back end:
+
+https://github.com/orodrigogo/ignitegym-api
+
+
+Depois de fazer o download é só executar o 'npm i' para instalar as bibliotecas e depois rodar o servidor com 'npm start'.
+
+
+Qualquer dúvida é só chamar.
