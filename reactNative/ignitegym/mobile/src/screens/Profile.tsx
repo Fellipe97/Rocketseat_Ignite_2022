@@ -1,8 +1,16 @@
 import { useState } from 'react';
 import { TouchableOpacity, Alert } from 'react-native';
 import { Center, ScrollView, VStack, Skeleton, Text, Heading, useToast } from "native-base";
-import * as ImagePicker from 'expo-image-picker'
-import *  as FileSystem from 'expo-file-system'
+import { useForm, Controller } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup'
+import * as ImagePicker from 'expo-image-picker';
+import *  as FileSystem from 'expo-file-system';
+import * as yup from 'yup';
+
+import { api } from '@services/api';
+import { AppError } from '@utils/AppError';
+
+import { useAuth } from '@hooks/useAuth';
 
 import { ScreenHeader } from "@components/ScreenHeader";
 import { UserPhoto } from "@components/UserPhoto";
@@ -11,11 +19,52 @@ import { Button } from '@components/Button';
 
 const PHOTO_SIZE = 33;
 
-export function Profile() {
-    const [photoIsLoading, setPhotoIsLoading] = useState(false)
-    const [userPhoto, setUserPhoto] = useState('https://github.com/Fellipe97.png')
+type FormDataProps = {
+    name: string;
+    email: string;
+    password: string;
+    old_password: string;
+    confirm_password: string;
+}
 
-    const toast = useToast()
+const profileSchema = yup.object({
+    name: yup
+        .string()
+        .required('Informe o nome.'),
+    password: yup
+        .string()
+        .min(6, 'A senha deve ter pelo menos 6 dígitos.')
+        .nullable()
+        .transform((value) => !!value ? value : null),
+    confirm_password: yup
+        .string()
+        .nullable()
+        .transform((value) => !!value ? value : null)
+        .oneOf([yup.ref('password'), null], 'A confirmação de senha não confere')
+        .when('password', {
+            is: (Field: any) => Field,
+            //then: yup.string().nullable().required('Informe a confirmação da senha.')
+            then: (schema) => schema
+                .nullable()
+                .required('Informe a confirmação da senha.')
+                .transform((value) => !!value ? value : null),
+        })
+});
+
+export function Profile() {
+    const [isUpdating, setIsUpdating] = useState(false);
+    const [photoIsLoading, setPhotoIsLoading] = useState(false);
+    const [userPhoto, setUserPhoto] = useState('https://github.com/Fellipe97.png');
+
+    const { user, updateUserProfile } = useAuth();
+    const toast = useToast();
+    const { control, handleSubmit, formState: { errors } } = useForm<FormDataProps>({
+        defaultValues: {
+            name: user.name,
+            email: user.email
+        },
+        resolver: yupResolver(profileSchema)
+    });
 
     async function handleUserPhtotSelect() {
         setPhotoIsLoading(true)
@@ -32,7 +81,7 @@ export function Profile() {
                 return;
             }
             if (photoSelected.assets[0].uri) {
-                let photoInfo  = await FileSystem.getInfoAsync(photoSelected.assets[0].uri)
+                let photoInfo = await FileSystem.getInfoAsync(photoSelected.assets[0].uri)
                 if (photoInfo.exists && photoInfo.size && (photoInfo.size / 1024 / 1024) > 5) {
                     return toast.show({
                         title: 'Essa imagem é muito grande. Escolha uma até 5mb.',
@@ -43,7 +92,8 @@ export function Profile() {
 
 
 
-                setUserPhoto(photoSelected.assets[0].uri)
+                //setUserPhoto(photoSelected.assets[0].uri)
+                console.log(photoSelected.assets[0])
             }
         } catch (error) {
             console.log(error)
@@ -52,6 +102,39 @@ export function Profile() {
         }
 
 
+    }
+
+    async function handleProfileUpdate(data: FormDataProps) {
+        try {
+            setIsUpdating(true);
+            console.log(data)
+
+            const userUpdated = user;
+            userUpdated.name = data.name;
+
+            await api.put('/users', data);
+
+            await updateUserProfile(userUpdated);
+
+            toast.show({
+                title: 'Perfil atualizado com sucesso!',
+                placement: 'top',
+                bgColor: 'green.500'
+            });
+
+        } catch (error) {
+            const isAppError = error instanceof AppError;
+            const title = isAppError ? error.message : 'Não foi possível atualizar os dados. Tente novamente mais tarde.'
+
+            toast.show({
+                title,
+                placement: 'top',
+                bgColor: 'red.500'
+            });
+
+        } finally {
+            setIsUpdating(false);
+        }
     }
 
     return (
@@ -83,37 +166,86 @@ export function Profile() {
                         </Text>
                     </TouchableOpacity>
 
-                    <Input
-                        bg='gray.600'
-                        placeholder='Nome'
+                    <Controller
+                        control={control}
+                        name='name'
+                        render={({ field: { value, onChange } }) => (
+                            <Input
+                                bg='gray.600'
+                                placeholder='Nome'
+                                value={value}
+                                onChangeText={onChange}
+                                errorMessage={errors.name?.message}
+                            />
+                        )}
                     />
-                    <Input
-                        bg='gray.600'
-                        placeholder='E-mail'
-                        isDisabled
+                    <Controller
+                        control={control}
+                        name='email'
+                        render={({ field: { value, onChange } }) => (
+                            <Input
+                                bg='gray.600'
+                                placeholder='E-mail'
+                                value={value}
+                                onChangeText={onChange}
+                                isDisabled
+                            />
+                            /* errorMessage={errors.name?.message} */
+                        )}
                     />
 
                     <Heading color='gray.200' fontSize='md' mb={2} alignSelf='flex-start' mt={12} fontFamily='heading'>
                         Alterar senha
                     </Heading>
-                    <Input
-                        bg='gray.600'
-                        placeholder='Senha Antiga'
-                        secureTextEntry
+
+                    <Controller
+                        control={control}
+                        name='old_password'
+                        render={({ field: { onChange } }) => (
+                            <Input
+                                bg='gray.600'
+                                placeholder='Senha Antiga'
+                                secureTextEntry
+                                onChangeText={onChange}
+                            />
+                        )}
                     />
-                    <Input
-                        bg='gray.600'
-                        placeholder='Nova senha'
-                        secureTextEntry
+
+                    <Controller
+                        control={control}
+                        name='password'
+                        render={({ field: { onChange } }) => (
+                            <Input
+                                bg='gray.600'
+                                placeholder='Nova senha'
+                                secureTextEntry
+                                onChangeText={onChange}
+                                errorMessage={errors.password?.message}
+                            />
+                        )}
                     />
-                    <Input
-                        bg='gray.600'
-                        placeholder='Confirme a nova senha'
-                        secureTextEntry
+
+                    <Controller
+                        control={control}
+                        name='confirm_password'
+                        render={({ field: { onChange } }) => (
+                            <Input
+                                bg='gray.600'
+                                placeholder='Confirme a nova senha'
+                                secureTextEntry
+                                onChangeText={onChange}
+                                errorMessage={errors.confirm_password?.message}
+                            />
+                        )}
                     />
+
+
+
                     <Button
                         title='Atualizar'
                         mt={4}
+                        onPress={handleSubmit(handleProfileUpdate)}
+                        isLoading={isUpdating}
                     />
 
                 </Center>

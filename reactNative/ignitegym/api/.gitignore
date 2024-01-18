@@ -1,0 +1,10 @@
+node_modules
+exercises
+src
+tmp
+insomnia.json
+knexfile.json
+package-lock.json
+package.json
+README.md
+./src/database/database.db
